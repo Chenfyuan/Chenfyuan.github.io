@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>大模型推理入门：给小白的完整教程</title>
+<style>
+body{margin:0;font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;background:#f5f6fb;color:#262838;line-height:1.8}
+header{background:linear-gradient(120deg,#6d5df0,#3fa0f5);color:#fff;padding:46px 20px;text-align:center}
+header h1{margin:0 0 8px;font-size:30px}header p{margin:0;opacity:.92}
+nav{position:sticky;top:0;background:#fff;box-shadow:0 2px 10px rgba(0,0,0,.06);padding:8px 12px;overflow-x:auto;white-space:nowrap;z-index:9}
+nav a{color:#5b4be0;text-decoration:none;margin:0 8px;font-size:14px}
+main{max-width:880px;margin:auto;padding:20px 18px 70px}
+section{background:#fff;border-radius:16px;padding:22px 26px;margin:18px 0;box-shadow:0 4px 18px rgba(70,60,150,.08)}
+h2{color:#5b4be0;margin-top:0}h3{margin-bottom:4px}
+code{background:#eeecfb;padding:2px 6px;border-radius:5px}
+.tip{background:#fff6dd;border-left:4px solid #f2b705;padding:10px 14px;border-radius:8px;margin:10px 0}
+.key{background:#e9f6ff;border-left:4px solid #3fa0f5;padding:10px 14px;border-radius:8px;margin:10px 0}
+table{border-collapse:collapse;width:100%;font-size:14px}td,th{border:1px solid #e3e1f2;padding:8px;text-align:left}th{background:#f1effc}
+.flow{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:center;margin:10px 0}
+.box{background:#eeecfb;border-radius:10px;padding:9px 13px;text-align:center;font-size:14px}.arrow{color:#6d5df0;font-weight:bold}
+button{background:#6d5df0;color:#fff;border:0;padding:8px 16px;border-radius:9px;font-size:14px;cursor:pointer;margin:6px 6px 0 0}
+.tok{display:inline-block;background:#e4e0ff;border-radius:6px;padding:2px 7px;margin:2px;animation:pop .3s}
+.cache{display:inline-block;background:#d8f3e3;border-radius:6px;padding:2px 7px;margin:2px}
+@keyframes pop{from{transform:scale(.4);opacity:0}to{transform:scale(1);opacity:1}}
+.bar{height:22px;border-radius:6px;background:#6d5df0;color:#fff;font-size:13px;padding-left:8px;line-height:22px;margin:4px 0;transition:width .4s;min-width:70px}
+details{margin:8px 0}summary{cursor:pointer;font-weight:bold}
+.small{font-size:13px;color:#777}.progress{font-size:13px;color:#666}
+</style></head><body>
+<header><h1>大模型推理入门</h1><p>从「模型怎么说出一句话」讲到 KV Cache、量化和 vLLM，一节一节慢慢学</p></header>
+<nav><a href="#s1">1 推理是什么</a><a href="#s2">2 Token</a><a href="#s3">3 逐字生成</a><a href="#s4">4 采样</a><a href="#s5">5 两个阶段</a><a href="#s6">6 KV Cache</a><a href="#s7">7 性能指标</a><a href="#s8">8 瓶颈</a><a href="#s9">9 批处理</a><a href="#s10">10 量化</a><a href="#s11">11 加速技巧</a><a href="#s12">12 推理框架</a><a href="#s13">13 面试</a><a href="#s14">14 自测</a></nav>
+<main>
+
+<section><p class="progress">学习建议：每天学 2～3 节，学完一节先用自己的话复述，再看下一节。勾选右边的复选框记录进度：<span id="prog">0 / 14</span></p></section>
+
+<section id="s1"><h2>第 1 节：推理到底是什么？<input type="checkbox" class="done"></h2>
+<p>大模型的一生分两段：</p>
+<ul><li><b>训练</b>：像学生上学。喂给模型海量文字，不断调整它内部的几十亿个参数，让它学会语言规律。花钱多、时间长，一般只做一次或少数几次。</li>
+<li><b>推理</b>：像学生毕业后上班。参数已经固定，你提一个问题，它根据学到的规律给出回答。你每次和 ChatGPT 聊天，都是一次推理。</li></ul>
+<div class="key">一句话：<b>推理 = 用训练好的模型，根据输入生成输出。</b>训练决定模型有多聪明，推理决定它回答得多快、多便宜、能同时服务多少人。</div>
+<p>为什么推理很重要？因为一个模型训练一次，却要被几亿人调用无数次。推理成本往往才是公司长期最大的开销，所以「推理优化工程师」很吃香。</p></section>
+
+<section id="s2"><h2>第 2 节：Token，模型眼里的「字」<input type="checkbox" class="done"></h2>
+<p>模型不直接认识汉字或单词，它先把文字切成小块，叫 <b>token</b>。一个 token 可能是一个字、半个词或一个标点。</p>
+<p>比如「我爱人工智能」可能被切成：<span class="tok">我</span><span class="tok">爱</span><span class="tok">人工</span><span class="tok">智能</span></p>
+<p>每个 token 会对应一个编号，再变成一串数字（向量），模型才能计算。</p>
+<div class="tip">为什么要懂 token？因为大模型的<b>计费、速度、长度上限</b>都按 token 算。「上下文 128K」就是最多能装下约 12.8 万个 token。中文里大约 1 个汉字对应 1～2 个 token，具体看分词器。</div></section>
+
+<section id="s3"><h2>第 3 节：模型是一个字一个字「蹦」出来的<input type="checkbox" class="done"></h2>
+<p>大模型的核心工作方式叫<b>自回归生成</b>：每次只预测<b>下一个 token</b>，把它接到后面，再预测下一个，循环往复，直到生成结束标记。</p>
+<div class="flow"><div class="box">输入：今天天气</div><span class="arrow">→</span><div class="box">预测：很</div><span class="arrow">→</span><div class="box">今天天气很</div><span class="arrow">→</span><div class="box">预测：好</div><span class="arrow">→</span><div class="box">……</div></div>
+<button onclick="genDemo()">▶ 看它逐字生成</button><div id="gen" style="margin-top:8px;min-height:34px"></div>
+<p>这就是为什么聊天机器人的回答是一点一点「打」出来的：它真的在一个一个算。</p>
+<div class="key">重点：<b>生成 100 个字，模型就要完整跑约 100 次。</b>这是推理慢的根本原因，后面的优化几乎都在解决这个问题。</div></section>
+
+<section id="s4"><h2>第 4 节：采样，下一个字怎么选？<input type="checkbox" class="done"></h2>
+<p>模型每一步不是直接给出一个字，而是给出<b>所有候选 token 的概率</b>。比如「今天天气」后面：很 50%、不 25%、真 15%、糟 10%。然后用某种规则挑一个，这叫<b>采样</b>。</p>
+<table><tr><th>参数</th><th>大白话</th><th>效果</th></tr>
+<tr><td>Greedy（贪心）</td><td>永远选概率最高的</td><td>稳定，但容易啰嗦重复</td></tr>
+<tr><td>Temperature（温度）</td><td>调节「胆子大小」</td><td>低温更保守准确，高温更有创意也更容易乱说</td></tr>
+<tr><td>Top-k</td><td>只在前 k 个候选里挑</td><td>砍掉离谱的低概率选项</td></tr>
+<tr><td>Top-p</td><td>只在累计概率达到 p 的候选里挑</td><td>候选数量随情况自动变化，更灵活</td></tr></table>
+<h3>动手试：拖动温度，看概率怎么变</h3>
+<p>温度 = <b id="tv">1.0</b> <input type="range" min="0.1" max="2" step="0.1" value="1" oninput="drawT(this.value)" style="width:60%"></p>
+<div id="tbars"></div>
+<p class="small">温度越低，最高的选项越突出；温度越高，各选项越平均。写代码、做数学用低温；写故事、头脑风暴可以调高。</p></section>
+
+<section id="s5"><h2>第 5 节：推理的两个阶段，Prefill 和 Decode<input type="checkbox" class="done"></h2>
+<div class="flow"><div class="box"><b>Prefill 预填充</b><br>一次性读完整个问题</div><span class="arrow">→</span><div class="box">吐出第 1 个字</div><span class="arrow">→</span><div class="box"><b>Decode 解码</b><br>一个字一个字往后生成</div></div>
+<ul><li><b>Prefill</b>：把你输入的所有 token <b>并行</b>处理一遍。GPU 很擅长并行，所以这一步算力用得很满，属于<b>计算密集型</b>。</li>
+<li><b>Decode</b>：每次只生成 1 个 token，却要把整个模型的参数从显存搬出来一遍。大部分时间花在「搬数据」上而不是「算」，属于<b>访存密集型</b>（受显存带宽限制）。</li></ul>
+<div class="tip">比喻：Prefill 像老师一次性看完整张试卷；Decode 像一笔一划写答案，每写一个字都要重新翻一遍厚厚的课本。</div></section>
+
+<section id="s6"><h2>第 6 节：KV Cache，推理最重要的优化<input type="checkbox" class="done"></h2>
+<p>回顾注意力机制：生成新字时，模型要回头「看」前面所有的字。每个字在计算中会产生两组中间结果，叫 <b>K（Key）</b> 和 <b>V（Value）</b>。</p>
+<p><b>问题</b>：如果不做优化，每生成一个新字，前面所有字的 K、V 都要重算一遍，越往后越慢。</p>
+<p><b>解决</b>：把算过的 K、V 存起来，下次直接用，只为新字计算一次。这块缓存就叫 <b>KV Cache</b>。</p>
+<button onclick="kvDemo(false)">没有 KV Cache</button><button onclick="kvDemo(true)">有 KV Cache</button>
+<div id="kv" style="margin-top:8px;min-height:60px"></div>
+<div class="key">代价：用<b>显存换速度</b>。KV Cache 会随「对话长度 × 同时服务人数」不断变大，长对话时甚至比模型本身还占显存。所以显存往往是推理的头号瓶颈。</div></section>
+
+<section id="s7"><h2>第 7 节：怎么衡量推理快不快？<input type="checkbox" class="done"></h2>
+<table><tr><th>指标</th><th>含义</th><th>用户感受</th></tr>
+<tr><td><b>TTFT</b>（首 token 延迟）</td><td>从发出问题到看到第一个字的时间</td><td>「它多久开始回答」</td></tr>
+<tr><td><b>TPOT / ITL</b>（每 token 耗时）</td><td>后续每个字之间的间隔</td><td>「字打得快不快」</td></tr>
+<tr><td><b>吞吐量</b></td><td>整台服务器每秒总共生成多少 token</td><td>老板关心：一台机器能服务多少人</td></tr>
+<tr><td><b>并发数</b></td><td>同时在处理多少个请求</td><td>高峰期会不会卡</td></tr></table>
+<p>TTFT 主要受 Prefill 影响，TPOT 主要受 Decode 影响。</p>
+<div class="tip">延迟和吞吐常常互相矛盾：一次塞更多请求，总吞吐上去了，但每个人可能等得更久。推理优化就是在两者之间找平衡。</div></section>
+
+<section id="s8"><h2>第 8 节：推理的三大瓶颈<input type="checkbox" class="done"></h2>
+<ol><li><b>显存容量</b>：模型参数 + KV Cache 都要放进 GPU 显存。粗算：参数用 FP16 存储时，每 10 亿参数约占 2GB，7B 模型光参数就约 14GB。</li>
+<li><b>显存带宽</b>：Decode 阶段每生成一个字都要把参数读一遍，读得越快，字吐得越快。</li>
+<li><b>计算能力</b>：Prefill 和大批量请求时，GPU 算力会成为限制。</li></ol>
+<p>记住这个对应关系，后面每种优化你都能说清它解决的是哪个瓶颈。</p></section>
+
+<section id="s9"><h2>第 9 节：批处理，一次服务很多人<input type="checkbox" class="done"></h2>
+<p>Decode 时 GPU 算力大部分在闲着，等数据搬运。那就让它一次处理多个用户的请求，参数只读一遍，同时算好几个人的下一个字，这叫<b>批处理（Batching）</b>。</p>
+<ul><li><b>静态批处理</b>：凑齐一批一起开始、一起结束。问题是有人回答 10 个字，有人回答 1000 个字，短的得陪长的等。</li>
+<li><b>连续批处理（Continuous Batching）</b>：每生成一步就检查一次，谁结束了就立刻让出位置给新请求。像公交车随时上下客，而不是坐满才发车、全员到站才下车。吞吐量可以大幅提升，是现代推理框架的标配。</li></ul></section>
+
+<section id="s10"><h2>第 10 节：量化，让模型「瘦身」<input type="checkbox" class="done"></h2>
+<p>模型参数本来用 16 位小数（FP16/BF16）存储。<b>量化</b>就是改用更少的位数，比如 8 位或 4 位整数。</p>
+<table><tr><th>精度</th><th>7B 模型参数约占显存</th><th>特点</th></tr>
+<tr><td>FP16 / BF16</td><td>约 14 GB</td><td>原始精度</td></tr>
+<tr><td>INT8 / FP8</td><td>约 7 GB</td><td>精度损失通常很小</td></tr>
+<tr><td>INT4</td><td>约 3.5 GB</td><td>能在普通显卡甚至笔记本上跑，精度有一定损失</td></tr></table>
+<p class="small">表中只算参数本身，实际运行还要加上 KV Cache 和其他开销。</p>
+<p>好处一举两得：<b>省显存</b>，而且要搬运的数据变少，Decode 也会<b>更快</b>。常见方法有 GPTQ、AWQ，以及本地运行常用的 GGUF 格式。</p>
+<div class="tip">比喻：把高清照片压缩成小图，大多数时候看不出区别，但压得太狠就会糊。</div></section>
+
+<section id="s11"><h2>第 11 节：更多加速技巧（了解即可）<input type="checkbox" class="done"></h2>
+<details open><summary>PagedAttention：像操作系统一样管理 KV Cache</summary><p>以前每个请求要预留一大块连续显存放 KV Cache，用不完就浪费。PagedAttention 把它切成小「页」按需分配，显存浪费大大减少，能同时服务更多人。这是 vLLM 的核心技术。</p></details>
+<details><summary>FlashAttention：更聪明地算注意力</summary><p>重新安排计算顺序，减少 GPU 在慢速显存和高速缓存之间来回搬数据，注意力计算更快、更省显存，长文本时效果尤其明显。</p></details>
+<details><summary>投机解码（Speculative Decoding）：小模型打草稿，大模型批改</summary><p>先让一个又小又快的模型一口气猜出几个字，再让大模型一次性验证。猜对的直接用，猜错的从错误处重来。输出质量不变，速度常能提升明显。</p></details>
+<details><summary>前缀缓存（Prefix Caching）</summary><p>很多请求开头相同，比如同一段系统提示词。把这部分的 KV Cache 存起来复用，就能省掉重复的 Prefill，降低首字延迟。</p></details>
+<details><summary>模型并行：一张卡放不下怎么办</summary><p><b>张量并行</b>把每一层拆到多张卡上一起算；<b>流水线并行</b>把不同层放在不同卡上，像工厂流水线。超大模型推理必须靠多卡。</p></details>
+<details><summary>PD 分离（Prefill / Decode 分离）</summary><p>Prefill 吃算力，Decode 吃带宽，特点不同。把两者放在不同机器上分别优化，可以同时改善首字延迟和吞吐，大规模在线服务中越来越常见。</p></details></section>
+
+<section id="s12"><h2>第 12 节：常用推理框架<input type="checkbox" class="done"></h2>
+<table><tr><th>框架</th><th>适合谁</th></tr>
+<tr><td><b>vLLM</b></td><td>最流行的开源推理服务框架，PagedAttention + 连续批处理，生产和学习首选</td></tr>
+<tr><td><b>SGLang</b></td><td>高性能开源框架，擅长前缀缓存和复杂调用流程</td></tr>
+<tr><td><b>TensorRT-LLM</b></td><td>英伟达官方，NVIDIA GPU 上性能强，配置相对复杂</td></tr>
+<tr><td><b>llama.cpp / Ollama</b></td><td>在个人电脑上跑量化模型，入门体验最友好</td></tr></table>
+<div class="tip">学习路线建议：先用 Ollama 在自己电脑上跑起一个小模型，感受推理；再用 vLLM 部署一个服务，测 TTFT 和吞吐。这就能写进项目经历。</div></section>
+
+<section id="s13"><h2>第 13 节：面试怎么答<input type="checkbox" class="done"></h2>
+<details><summary>Q：Prefill 和 Decode 有什么区别？（30 秒版）</summary><p>Prefill 并行处理全部输入，计算密集，决定首 token 延迟；Decode 每次生成一个 token，需要反复读取参数和 KV Cache，访存密集，决定生成速度。</p></details>
+<details><summary>Q：KV Cache 是什么？有什么代价？</summary><p>缓存已计算 token 的 Key 和 Value，避免每步重复计算，把生成从反复重算变成增量计算。代价是显存占用随序列长度和并发数线性增长，需要用 PagedAttention、量化或前缀复用等手段管理。</p></details>
+<details><summary>Q：为什么连续批处理能提升吞吐？</summary><p>Decode 阶段 GPU 算力利用率低，批处理能让一次参数读取服务多个请求。连续批处理按步调度，请求结束立即补入新请求，避免短请求等长请求造成空转。</p></details>
+<details><summary>Q：如何降低一个推理服务的成本？</summary><p>先测指标定位瓶颈；然后可以用量化减少显存和带宽压力，用连续批处理和 PagedAttention 提升并发，用前缀缓存减少重复计算，用投机解码加速生成，必要时把简单请求路由到小模型。</p></details></section>
+
+<section id="s14"><h2>第 14 节：自测题<input type="checkbox" class="done"></h2>
+<details><summary>1. 为什么模型生成长回答比短回答慢？</summary><p>自回归生成，每多一个 token 就要多跑一次模型。</p></details>
+<details><summary>2. 写代码时温度应该调高还是调低？</summary><p>调低，让输出更确定、更少出错。</p></details>
+<details><summary>3. 首字很慢、后面很快，大概率是哪个阶段的问题？</summary><p>Prefill，常见原因是输入太长或排队等待。</p></details>
+<details><summary>4. KV Cache 用什么换了什么？</summary><p>用显存换速度。</p></details>
+<details><summary>5. 7B 模型用 INT4 量化后，参数大约占多少显存？</summary><p>约 3.5GB（7B × 0.5 字节），不含 KV Cache 等开销。</p></details>
+<p><b>本教程掌握标准</b>：能不看资料讲清 Prefill/Decode、KV Cache、TTFT/吞吐、连续批处理和量化这五件事。</p>
+<p><b>下一步作业</b>：安装 Ollama 运行一个 7B 以下的小模型，观察回答速度；然后来找我，我们学 vLLM 部署和压测。</p></section>
+</main>
+<script>
+const boxes=[...document.querySelectorAll('.done')];
+boxes.forEach((b,i)=>{b.style.float='right';b.style.transform='scale(1.3)';b.checked=localStorage.getItem('inf'+i)==='1';b.onchange=()=>{localStorage.setItem('inf'+i,b.checked?'1':'0');prog()}});
+function prog(){document.getElementById('prog').textContent=boxes.filter(b=>b.checked).length+' / '+boxes.length}prog();
+function genDemo(){const w=['今天','天气','很','好','，','适合','出去','散步','。'];const el=document.getElementById('gen');el.innerHTML='<span class="cache">今天</span><span class="cache">天气</span>';let i=2;const t=setInterval(()=>{if(i>=w.length){clearInterval(t);return}el.innerHTML+='<span class="tok">'+w[i++]+'</span>'},450)}
+const cand=['很',' 不','真','糟'],logit=[2.0,1.3,0.8,0.4];
+function drawT(t){t=+t;document.getElementById('tv').textContent=t.toFixed(1);const e=logit.map(x=>Math.exp(x/t)),s=e.reduce((a,b)=>a+b);document.getElementById('tbars').innerHTML=cand.map((c,i)=>`<div class="bar" style="width:${Math.max(e[i]/s*100,8)}%">今天天气${c}… ${(e[i]/s*100).toFixed(1)}%</div>`).join('')}drawT(1);
+function kvDemo(c){const el=document.getElementById('kv');const w=['我','爱','人工','智能'];let h='';for(let i=0;i<w.length;i++){h+='<div>第 '+(i+1)+' 步：';for(let j=0;j<=i;j++){h+=(c&&j<i)?'<span class="cache">'+w[j]+'(复用)</span>':'<span class="tok">'+w[j]+'(计算)</span>'}h+='</div>'}
+const n=c?w.length:w.length*(w.length+1)/2;h+='<p class="small">共计算 '+n+' 次 K/V。'+(c?'每步只算新字，长度为 n 时总计算量约为 n。':'每步都重算全部，长度为 n 时总计算量约为 n²/2。')+'</p>';el.innerHTML=h}
+</script></body></html>
