@@ -1,0 +1,29 @@
+scheme: Gemini
+darkmode: true
+menu:
+  home: / || fa fa-home
+  categories: /categories/ || fa fa-th
+  tags: /tags/ || fa fa-tags
+  archives: /archives/ || fa fa-archive
+toc:
+  enable: true
+  number: true
+  wrap: true
+codeblock:
+  theme:
+    light: default
+    dark: stackoverflow-dark
+  copy_button:
+    enable: true
+local_search:
+  enable: true
+  top_n_per_article: 1
+  unescape: false
+  preload: false
+back2top:
+  enable: true
+  scrollpercent: true
+reading_progress:
+  enable: true
+footer:
+  powered: true
