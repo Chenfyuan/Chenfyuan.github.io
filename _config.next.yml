@@ -27,3 +27,8 @@ reading_progress:
   enable: true
 footer:
   powered: true
+math:
+  every_page: false
+  mathjax:
+    enable: true
+    tags: none
