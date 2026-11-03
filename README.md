@@ -1,4 +1,4 @@
-# AI 学习笔记
+# 写代码的老男孩
 
 基于 Hexo + NexT（Gemini 方案）的博客，推送到 main 后由 GitHub Actions（`.github/workflows/pages.yml`）自动构建并发布到 https://chenfyuan.github.io 。
 
