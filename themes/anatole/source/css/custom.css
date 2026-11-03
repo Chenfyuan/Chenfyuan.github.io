@@ -1,0 +1,14 @@
+.post-content figure.highlight{margin:1em 0;overflow-x:auto;background:#f6f8fa;border-radius:4px;font-size:13px}
+.post-content figure.highlight table{border:0;margin:0;width:auto}
+.post-content figure.highlight td{border:0;padding:8px;vertical-align:top}
+.post-content figure.highlight .gutter pre{color:#aaa;text-align:right}
+.post-content pre{background:#f6f8fa;padding:8px;overflow-x:auto;white-space:pre}
+.post-content code{font-family:Menlo,Consolas,monospace}
+.post-content pre.mermaid{background:#fff;text-align:center}
+.post-content table{border-collapse:collapse;display:block;overflow-x:auto}
+.post-content th,.post-content td{border:1px solid #ddd;padding:4px 8px}
+.post-content .keyword,.post-content .built_in{color:#d73a49}.post-content .string{color:#032f62}
+.post-content .comment{color:#6a737d}.post-content .number,.post-content .literal{color:#005cc5}
+.post-content .title,.post-content .function{color:#6f42c1}
+.term-cloud .term{display:inline-block;margin:4px 8px}
+mjx-container{overflow-x:auto;overflow-y:hidden}

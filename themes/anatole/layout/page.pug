@@ -1,0 +1,32 @@
+extends partial/layout
+
+block site_title
+    != page.title + " · " + config.title
+
+block description
+    - var desc = page.desc || strip_html(page.content).replace(/^\s*/, '').replace(/\s*$/, '').substring(0, 150);
+    meta(name="description", content=desc)
+
+block content
+  .autopagerize_page_element: .content: .post-page
+    include mixins
+    if page.type == 'categories'
+      .post.animated.fadeInDown
+        .post-title: h3: a= page.title
+        .post-content
+          ul.term-list
+            - site.categories.sort('name').each(function(c){
+              li: a(href=url_for(c.path))!= c.name + ' (' + c.length + ')'
+            - })
+    else if page.type == 'tags'
+      .post.animated.fadeInDown
+        .post-title: h3: a= page.title
+        .post-content
+          p.term-cloud
+            - site.tags.sort('name').each(function(t){
+              a.term(href=url_for(t.path))!= t.name + ' (' + t.length + ')'
+            - })
+    else
+      +make_post(page, true)
+    if page.comments
+        include partial/comments
