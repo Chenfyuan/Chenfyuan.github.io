@@ -1,0 +1,15 @@
+- var listPosts = site.posts.sort('date', -1)
+aside.reader-list
+  .panel
+    .panel-bar
+      span.panel-dot(aria-hidden="true")
+      span.panel-title= listTitle || 'Blogs'
+    .panel-body.reader-list-body
+      ul.post-index
+        - listPosts.each(function(post){
+          - var current = is_post() && (page.path === post.path || (page.slug && page.slug === post.slug))
+          li(class=current ? 'is-current' : '')
+            a(href=url_for(post.path))
+              span.post-index-title= post.title
+              time.post-index-date(datetime=date_xml(post.date))= date(post.date, 'YYYY-MM-DD HH:mm')
+        - })

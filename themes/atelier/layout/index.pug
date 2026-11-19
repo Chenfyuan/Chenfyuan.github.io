@@ -1,0 +1,99 @@
+extends partial/layout
+
+block append vars
+  - bodyClass = 'page-home'
+  - var latestPost = null
+  - site.posts.sort('date', -1).each(function(post, i){ if (i === 0) latestPost = post; })
+  - var tagLimit = 8
+  - var topTags = []
+  - site.tags.sort('length', -1).each(function(tag, i){ if (i < tagLimit) topTags.push(tag); })
+  - var postCount = site.posts.length
+
+
+block content
+  .mosaic
+    article.card.card-profile
+      .card-bar: span.card-title Profile
+      .card-body
+        .profile-badge
+          img.profile-avatar(src=url_for(theme.avatar), alt="", width="168", height="168")
+        h1.profile-name= config.title
+        if theme.description || config.subtitle
+          p.profile-tagline= theme.description || config.subtitle
+
+    article.card.card-stage
+      .card-bar: span.card-title Tags
+      .card-body.stage-art(aria-hidden="false")
+        .sunset(aria-hidden="true")
+          .sunset-sky
+          .sunset-sun
+          .sunset-glow
+          .sunset-water
+          .sunset-track
+          .geo-train
+            .geo-engine
+              .geo-cabin
+              .geo-nose
+            .geo-car
+            .geo-car
+            .geo-wheel
+            .geo-wheel.geo-wheel-2
+            .geo-wheel.geo-wheel-3
+            .geo-wheel.geo-wheel-4
+          .geo-figures
+            .geo-person.geo-person-a
+            .geo-person.geo-person-b
+            .geo-person.geo-person-c
+        ul.tag-clouds
+          - topTags.forEach(function(tag, i){
+            li(class='cloud cloud-' + (i + 1))
+              a(href=url_for(tag.path))= '#' + tag.name
+          - })
+
+    article.card.card-about
+      .card-bar: span.card-title About Me
+      .card-body
+        p.about-name= config.title
+        if theme.description || config.subtitle
+          p.about-line= theme.description || config.subtitle
+        p.about-line 这里存放机器学习、深度学习、大模型和 Agent 的学习笔记，全部来自已经发布的文章，没有另写经历。
+
+    article.card.card-posts
+      .card-bar: span.card-title Articles
+      .card-body
+        if latestPost
+          p.posts-count= postCount + ' 篇笔记'
+          a.posts-latest(href=url_for(latestPost.path))
+            span.posts-latest-label 最近更新
+            span.posts-latest-title= latestPost.title
+          a.card-go(href=latestPost ? url_for(latestPost.path) : url_for('/archives/'), aria-label="阅读文章")
+        else
+          p.posts-count 暂无文章
+
+    article.card.card-github
+      .card-bar: span.card-title GitHub
+      .card-body
+        .brand-mark
+          svg(viewBox="0 0 16 16", width="72", height="72", aria-hidden="true")
+            path(fill="currentColor", d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82A7.65 7.65 0 0 1 8 4.77c.68.003 1.36.092 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z")
+        if theme.github
+          a.card-url(href="https://github.com/" + theme.github, target="_blank", rel="noopener")= "https://github.com/" + theme.github
+          a.card-go(href="https://github.com/" + theme.github, target="_blank", rel="noopener", aria-label="打开 GitHub")
+
+    article.card.card-x
+      .card-bar: span.card-title X
+      .card-body
+        .brand-mark
+          svg(viewBox="0 0 24 24", width="64", height="64", aria-hidden="true")
+            path(fill="currentColor", d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.744l7.724-8.835L1.254 2.25H8.08l4.253 5.622L18.244 2.25zm-1.161 17.52h1.833L7.084 4.126H5.117z")
+        if theme.twitter
+          a.card-url(href="https://x.com/" + theme.twitter, target="_blank", rel="noopener")= "@" + theme.twitter
+          a.card-go(href="https://x.com/" + theme.twitter, target="_blank", rel="noopener", aria-label="打开 X")
+
+    article.card.card-terms
+      .card-bar: span.card-title Categories
+      .card-body
+        ul.term-pills
+          - site.categories.sort('name').each(function(cat){
+            li: a(href=url_for(cat.path))= cat.name + ' · ' + cat.length
+          - })
