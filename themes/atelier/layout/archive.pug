@@ -1,0 +1,35 @@
+extends partial/layout
+
+block append vars
+  - bodyClass = 'page-read'
+  - listTitle = 'Blogs'
+
+
+block site_title
+    = '归档 · ' + config.title
+
+
+block content
+  .reader
+    include partial/reader-list
+    section.reader-article
+      .panel
+        .panel-bar
+          span.panel-dot(aria-hidden="true")
+          h1.panel-title 归档
+        .panel-body.article-scroll
+          article.post-content
+            header.post-header
+              h2.post-title 全部文章
+              p.post-meta= site.posts.length + ' 篇。从左侧列表打开正文，阅读页会保持双栏。'
+            - var year = 0
+            - site.posts.sort('date', -1).each(function(post){
+              - var y = post.date.year()
+              if year !== y
+                - year = y
+                h3.archive-year= y
+              p.archive-item
+                time= date(post.date, 'MM-DD')
+                = ' '
+                a(href=url_for(post.path))= post.title
+            - })

@@ -1,0 +1,29 @@
+- var latestPost = null
+- site.posts.sort('date', -1).each(function(post, i){ if (i === 0) latestPost = post; })
+- var blogHref = latestPost ? url_for(latestPost.path) : url_for('/archives/')
+- var isBlog = is_post()
+- var isHome = is_home() && (!page.current || page.current === 1)
+header.topbar
+  .topbar-inner
+    a.brand(href=url_for('/'), aria-label=config.title)
+      img.brand-avatar(src=url_for(theme.avatar), alt="", width="36", height="36")
+    button.nav-toggle(type="button", aria-expanded="false", aria-controls="site-nav", data-nav-toggle) 菜单
+    nav#site-nav.nav(data-nav)
+      .nav-indicator(data-nav-indicator, aria-hidden="true")
+      a.nav-link(class=isHome ? 'is-current' : '', href=url_for('/')) HOME
+      a.nav-link(class=isBlog ? 'is-current' : '', href=blogHref) BLOG
+      a.nav-link(class=is_archive() ? 'is-current' : '', href=url_for('/archives/')) ARCHIVES
+      a.nav-link(class=(is_current('categories') || is_category()) ? 'is-current' : '', href=url_for('/categories/')) CATEGORIES
+      a.nav-link(class=(is_current('tags') || is_tag()) ? 'is-current' : '', href=url_for('/tags/')) TAGS
+    .topbar-tools
+      if theme.github
+        a.tool-link(href="https://github.com/" + theme.github, target="_blank", rel="noopener", aria-label="GitHub @" + theme.github)
+          svg(viewBox="0 0 16 16", width="16", height="16", aria-hidden="true")
+            path(fill="currentColor", d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82A7.65 7.65 0 0 1 8 4.77c.68.003 1.36.092 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z")
+      if theme.twitter
+        a.tool-link(href="https://x.com/" + theme.twitter, target="_blank", rel="noopener", aria-label="X @" + theme.twitter)
+          svg(viewBox="0 0 24 24", width="14", height="14", aria-hidden="true")
+            path(fill="currentColor", d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.744l7.724-8.835L1.254 2.25H8.08l4.253 5.622L18.244 2.25zm-1.161 17.52h1.833L7.084 4.126H5.117z")
+      .clock(title="Asia/Singapore")
+        span.clock-face(aria-hidden="true")
+        span.clock-time(data-clock) --:--:--

@@ -1,0 +1,43 @@
+extends partial/layout
+
+block append vars
+  - bodyClass = 'page-read'
+  - listTitle = page.type === 'tags' ? 'Tags' : (page.type === 'categories' ? 'Categories' : 'Blogs')
+
+
+block site_title
+    != (page.title || config.title) + " · " + config.title
+
+block description
+    - var desc = page.desc || (page.content ? strip_html(page.content).replace(/^\s*/, '').replace(/\s*$/, '').substring(0, 150) : (theme.description || config.title))
+    meta(name="description", content=desc)
+
+
+block content
+  .reader
+    include partial/reader-list
+    section.reader-article
+      .panel
+        .panel-bar
+          span.panel-dot(aria-hidden="true")
+          h1.panel-title= page.title || config.title
+        .panel-body.article-scroll
+          article.post-content
+            if page.type == 'categories'
+              header.post-header
+                h2.post-title 分类
+              ul.term-list
+                - site.categories.sort('name').each(function(c){
+                  li: a(href=url_for(c.path))= c.name + ' (' + c.length + ')'
+                - })
+            else if page.type == 'tags'
+              header.post-header
+                h2.post-title 标签
+              p.term-cloud
+                - site.tags.sort('name').each(function(t){
+                  a.term(href=url_for(t.path))= t.name + ' (' + t.length + ')'
+                - })
+            else
+              header.post-header
+                h2.post-title= page.title
+              != page.content

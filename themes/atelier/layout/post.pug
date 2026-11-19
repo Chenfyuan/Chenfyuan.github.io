@@ -1,0 +1,48 @@
+extends partial/layout
+
+block append vars
+  - bodyClass = 'page-read'
+  - listTitle = 'Blogs'
+
+
+block site_title
+    != page.title + " · " + config.title
+
+block description
+    - var desc = page.desc || strip_html(page.content).replace(/^\s*/, '').replace(/\s*$/, '').substring(0, 150)
+    meta(name="description", content=desc)
+
+
+block content
+  .reader
+    include partial/reader-list
+    section.reader-article
+      .panel
+        .panel-bar
+          span.panel-dot(aria-hidden="true")
+          h1.panel-title= page.title
+        .panel-body.article-scroll
+          article.post-content
+            header.post-header
+              h2.post-title= page.title
+              p.post-meta
+                time(datetime=date_xml(page.date))= date(page.date, 'YYYY-MM-DD')
+                if page.categories && page.categories.length
+                  span.post-cats
+                    - page.categories.each(function(cat, i){
+                      if i > 0
+                        = ' / '
+                      a(href=url_for(cat.path))= cat.name
+                    - })
+            != page.content
+            if page.tags && page.tags.length
+              ul.post-tags
+                - page.tags.each(function(tag){
+                  li: a(href=url_for(tag.path))= '#' + tag.name
+                - })
+            if page.prev || page.next
+              nav.post-pager
+                if page.prev
+                  a(href=url_for(page.prev.path), rel="prev")= '上一篇：' + page.prev.title
+                if page.next
+                  a(href=url_for(page.next.path), rel="next")= '下一篇：' + page.next.title
